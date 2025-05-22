@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/SupabaseAuthContext";
 import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
 import { Login } from "@/pages/Login";
 import { Dashboard } from "@/pages/Dashboard";
