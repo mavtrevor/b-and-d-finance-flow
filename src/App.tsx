@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/SupabaseAuthContext";
 import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
 import { Login } from "@/pages/Login";
 import { Dashboard } from "@/pages/Dashboard";
+import { Settings } from "@/pages/Settings";
 
 const App = () => (
   <AuthProvider>
@@ -29,7 +30,7 @@ const App = () => (
             <Route path="withdrawals" element={<div className="p-4">Withdrawals Page (Coming Soon)</div>} />
             <Route path="reports" element={<div className="p-4">Reports Page (Coming Soon)</div>} />
             <Route path="partner-balances" element={<div className="p-4">Partner Balances (Coming Soon)</div>} />
-            <Route path="settings" element={<div className="p-4">Settings Page (Coming Soon)</div>} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           
           {/* Not found route */}

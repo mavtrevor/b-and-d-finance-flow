@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Wallet, ArrowDownLeft, ArrowUpRight, FileText, Users, Settings } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import {
   Sidebar,
   SidebarContent,
