@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -30,6 +31,7 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 export interface SidebarContext {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleSidebar?: () => void;
 }
 
 const SidebarContext = React.createContext<SidebarContext | undefined>(undefined);
@@ -40,9 +42,13 @@ export function SidebarProvider({
   children: React.ReactNode;
 }) {
   const [isOpen, setIsOpen] = React.useState(false);
+  
+  const toggleSidebar = React.useCallback(() => {
+    setIsOpen(prev => !prev);
+  }, []);
 
   return (
-    <SidebarContext.Provider value={{ isOpen, setIsOpen }}>
+    <SidebarContext.Provider value={{ isOpen, setIsOpen, toggleSidebar }}>
       {children}
     </SidebarContext.Provider>
   );
@@ -75,7 +81,11 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+    const { isOpen, setIsOpen } = useSidebar();
+    const isMobile = useIsMobile();
+    
+    // Determine state based on isOpen flag
+    const state = isOpen ? "open" : "collapsed";
 
     if (collapsible === "none") {
       return (
@@ -94,7 +104,7 @@ const Sidebar = React.forwardRef<
 
     if (isMobile) {
       return (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+        <Sheet open={isOpen} onOpenChange={setIsOpen} {...props}>
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
@@ -174,7 +184,7 @@ const SidebarTrigger = React.forwardRef<
       className={cn("h-7 w-7", className)}
       onClick={(event) => {
         onClick?.(event);
-        toggleSidebar();
+        toggleSidebar?.();
       }}
       {...props}
     >
@@ -454,7 +464,9 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button";
-    const { isMobile, state } = useSidebar();
+    const { isOpen } = useSidebar();
+    const isMobile = useIsMobile();
+    const state = isOpen ? "open" : "collapsed";
 
     const button = (
       <Comp
@@ -655,9 +667,7 @@ export {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarProvider,
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  useSidebar,
 };
