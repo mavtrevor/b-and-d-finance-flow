@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,31 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// B&D Apartments custom colors
+				'b-green': {
+					50: '#F5FBF7',
+					100: '#E6F7ED',
+					200: '#C2EAD0',
+					300: '#9EDDB4',
+					400: '#62C686',
+					500: '#2D6A4F',
+					600: '#295F47',
+					700: '#1B3F30',
+					800: '#142F24',
+					900: '#0E1F18',
+				},
+				'b-yellow': {
+					50: '#FDF9F3',
+					100: '#FCF3E7',
+					200: '#F7E1C3',
+					300: '#F3D09F',
+					400: '#E9AE57',
+					500: '#DDA15E',
+					600: '#C78335',
+					700: '#A66B2B',
+					800: '#7D5020',
+					900: '#523516',
 				}
 			},
 			borderRadius: {
