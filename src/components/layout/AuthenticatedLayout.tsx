@@ -1,14 +1,16 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { Loader2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AuthenticatedLayout() {
   const { currentUser, loading } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!loading && !currentUser) {
@@ -29,15 +31,20 @@ export function AuthenticatedLayout() {
     return null;
   }
 
+  // Default sidebar state: open on desktop, closed on mobile
+  const defaultSidebarState = !isMobile;
+
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={defaultSidebarState}>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <div className="flex-1 p-4 md:p-6 overflow-auto">
-          <div className="flex items-center mb-4">
-            <SidebarTrigger className="md:hidden mr-4" />
+        <div className="flex-1 overflow-auto md:ml-[16rem] transition-all duration-300 ease-in-out">
+          <div className="p-4 md:p-6">
+            <div className="md:hidden mb-4">
+              <SidebarTrigger className="mr-4" />
+            </div>
+            <Outlet />
           </div>
-          <Outlet />
         </div>
       </div>
     </SidebarProvider>

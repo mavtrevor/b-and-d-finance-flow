@@ -38,10 +38,12 @@ const SidebarContext = React.createContext<SidebarContext | undefined>(undefined
 
 export function SidebarProvider({
   children,
+  defaultOpen = false,
 }: {
   children: React.ReactNode;
+  defaultOpen?: boolean;
 }) {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(defaultOpen);
   
   const toggleSidebar = React.useCallback(() => {
     setIsOpen(prev => !prev);

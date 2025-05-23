@@ -23,7 +23,7 @@ export function Withdrawals() {
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="w-full max-w-full">
       <PageHeader
         title="Withdrawals"
         description="Manage partner withdrawals"
@@ -53,7 +53,7 @@ export function Withdrawals() {
         />
       </div>
       
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Withdrawal History</CardTitle>
           <CardDescription>Partner withdrawal records</CardDescription>
@@ -62,8 +62,8 @@ export function Withdrawals() {
           <div className="text-center py-12 text-muted-foreground">
             <Wallet className="mx-auto h-12 w-12 opacity-30 mb-3" />
             <h3 className="text-lg font-medium mb-2">No Withdrawal Records</h3>
-            <p>This feature will be implemented in the next phase.</p>
-            <p>You'll need to create the withdrawals table in the database first.</p>
+            <p className="text-sm">This feature will be implemented in the next phase.</p>
+            <p className="text-sm">You'll need to create the withdrawals table in the database first.</p>
           </div>
         </CardContent>
       </Card>

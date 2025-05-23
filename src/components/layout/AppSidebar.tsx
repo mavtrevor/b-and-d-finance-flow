@@ -13,21 +13,29 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AppSidebar() {
   const { signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { isOpen, setIsOpen } = useSidebar();
+  const isMobile = useIsMobile();
 
   // Close sidebar on navigation for mobile devices
   useEffect(() => {
+    if (isMobile && isOpen) {
+      setIsOpen(false);
+    }
+  }, [location.pathname, isMobile]);
+
+  // Close sidebar on window resize
+  useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 640 && isOpen) {
+      if (window.innerWidth < 768 && isOpen) {
         setIsOpen(false);
       }
     };
@@ -77,13 +85,13 @@ export function AppSidebar() {
   const handleNavigation = (path: string) => {
     navigate(path);
     // Close sidebar after navigation on mobile
-    if (window.innerWidth < 640) {
+    if (isMobile) {
       setIsOpen(false);
     }
   };
 
   return (
-    <Sidebar>
+    <Sidebar className="z-50">
       <SidebarContent>
         <div className="flex items-center p-4">
           <h1 className="text-xl font-semibold text-sidebar-foreground">B&D Apartments</h1>

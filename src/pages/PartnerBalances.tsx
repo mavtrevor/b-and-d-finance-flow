@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { 
   Card, 
@@ -19,7 +18,7 @@ export function PartnerBalances() {
   ];
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="w-full max-w-full">
       <PageHeader
         title="Partner Balances"
         description="Manage profit sharing between partners"
@@ -30,7 +29,7 @@ export function PartnerBalances() {
         }
       />
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-6">
         {partners.map((partner) => (
           <Card key={partner.id} className="bg-gradient-to-br from-background to-muted">
             <CardHeader>
@@ -55,7 +54,7 @@ export function PartnerBalances() {
         ))}
       </div>
       
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Partner Management</CardTitle>
           <CardDescription>Configure profit sharing arrangements</CardDescription>
@@ -64,8 +63,8 @@ export function PartnerBalances() {
           <div className="text-center py-12 text-muted-foreground">
             <Users className="mx-auto h-12 w-12 opacity-30 mb-3" />
             <h3 className="text-lg font-medium mb-2">Partner Management</h3>
-            <p>This feature will be implemented in the next phase.</p>
-            <p>You'll need to create the partners table in the database first.</p>
+            <p className="text-sm">This feature will be implemented in the next phase.</p>
+            <p className="text-sm">You'll need to create the partners table in the database first.</p>
           </div>
         </CardContent>
       </Card>
