@@ -17,6 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Partner } from "@/lib/db";
 
 export function PartnerBalances() {
   const [currentMonth, setCurrentMonth] = useState<string>(() => {
@@ -24,17 +25,13 @@ export function PartnerBalances() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   });
   const [managerCommission, setManagerCommission] = useState<number>(0);
+  const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
-  // Fixed partners data with updated names
-  const partners = [
-    { id: '1', name: 'Desmond', share: 50, balance: 250000 },
-    { id: '2', name: 'Bethel', share: 50, balance: 250000 },
-  ];
-
   useEffect(() => {
     fetchManagerCommission();
+    fetchPartners();
   }, [currentMonth]);
 
   const fetchManagerCommission = async () => {
@@ -51,6 +48,20 @@ export function PartnerBalances() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPartners = async () => {
+    try {
+      const partnersData = await partnerApi.getAll();
+      setPartners(partnersData);
+    } catch (error) {
+      console.error("Error fetching partners:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to load partner data",
+        description: "There was a problem loading the partner balances.",
+      });
     }
   };
 

@@ -375,11 +375,59 @@ export const withdrawalApi = {
 // Create partner API 
 export const partnerApi = {
   getAll: async (): Promise<Partner[]> => {
-    // Return our hardcoded partners for now
-    return [
-      { id: '1', name: 'Desmond', share: 50, balance: 250000 },
-      { id: '2', name: 'Bethel', share: 50, balance: 250000 },
+    // Get the fixed partners data
+    const partners = [
+      { id: '1', name: 'Desmond', share: 50, balance: 0 },
+      { id: '2', name: 'Bethel', share: 50, balance: 0 },
     ];
+
+    // Calculate balances based on income and withdrawals
+    try {
+      // Get all income data
+      const { data: incomeData, error: incomeError } = await supabase
+        .from('incomes')
+        .select('netincome');
+
+      if (incomeError) {
+        console.error("Error fetching income totals:", incomeError);
+        return partners;
+      }
+
+      // Calculate the total income
+      const totalIncome = incomeData.reduce((sum, item) => sum + (item.netincome || 0), 0);
+      
+      // Calculate each partner's share
+      partners.forEach(partner => {
+        partner.balance = (totalIncome * (partner.share / 100));
+      });
+
+      return partners;
+    } catch (err) {
+      console.error("Exception calculating partner balances:", err);
+      return partners;
+    }
+  },
+  
+  getTotalAvailableBalance: async (): Promise<number> => {
+    try {
+      // Get all income data
+      const { data: incomeData, error: incomeError } = await supabase
+        .from('incomes')
+        .select('netincome');
+
+      if (incomeError) {
+        console.error("Error fetching income totals:", incomeError);
+        return 0;
+      }
+
+      // Calculate the total income
+      const totalIncome = incomeData.reduce((sum, item) => sum + (item.netincome || 0), 0);
+      
+      return totalIncome;
+    } catch (err) {
+      console.error("Exception calculating total available balance:", err);
+      return 0;
+    }
   },
   
   // Add method to get manager's commission for current month

@@ -31,11 +31,14 @@ export function SummaryCard({
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon && <div className="text-b-green-500">{icon}</div>}
+        {icon && <div className="text-muted-foreground">{icon}</div>}
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="h-7 bg-gray-200 rounded animate-pulse"></div>
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin h-4 w-4 border-2 border-primary rounded-full border-t-transparent"></div>
+            <span className="text-muted-foreground">Loading...</span>
+          </div>
         ) : (
           <div className="text-2xl font-bold">{formattedValue}</div>
         )}

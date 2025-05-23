@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { PageHeader } from "@/components/ui/page-header";
 import { 
@@ -42,6 +42,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Wallet, Plus } from "lucide-react";
 import { SummaryCard } from "@/components/ui/summary-card";
+import { partnerApi } from "@/lib/db";
 
 const formSchema = z.object({
   date: z.string().min(1, { message: "Date is required" }),
@@ -58,6 +59,9 @@ export function Withdrawals() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [withdrawalsThisMonth, setWithdrawalsThisMonth] = useState(0);
+  const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -70,6 +74,29 @@ export function Withdrawals() {
       description: "",
     },
   });
+
+  useEffect(() => {
+    fetchBalances();
+  }, [currentMonth]);
+
+  const fetchBalances = async () => {
+    setLoading(true);
+    try {
+      const totalAvailable = await partnerApi.getTotalAvailableBalance();
+      setTotalBalance(totalAvailable);
+      // For now, set withdrawals this month to 0 since we don't have a withdrawals table
+      setWithdrawalsThisMonth(0);
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to load balances",
+        description: "There was a problem loading the balance data.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);
@@ -93,6 +120,7 @@ export function Withdrawals() {
     }).format(amount);
   };
 
+  const remainingBalance = totalBalance - withdrawalsThisMonth;
   const recipients = ["Desmond", "Bethel"];
 
   return (
@@ -113,16 +141,19 @@ export function Withdrawals() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         <SummaryCard 
           title="Total Available Balance" 
-          value={500000} 
-          icon={<Wallet className="h-4 w-4" />} 
+          value={totalBalance} 
+          icon={<Wallet className="h-4 w-4" />}
+          loading={loading}
         />
         <SummaryCard 
           title="Withdrawals This Month" 
-          value={0} 
+          value={withdrawalsThisMonth}
+          loading={loading}
         />
         <SummaryCard 
           title="Remaining Balance" 
-          value={500000} 
+          value={remainingBalance}
+          loading={loading}
         />
       </div>
       
