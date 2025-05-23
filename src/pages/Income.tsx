@@ -49,11 +49,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, InfoIcon } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const formSchema = z.object({
   date: z.string().min(1, { message: "Date is required" }),
@@ -427,6 +434,9 @@ export function Income() {
                       <div className="text-xs text-muted-foreground mt-1">
                         {formatCurrency(form.watch("primaryAmount") || 0)}
                       </div>
+                      <FormDescription className="flex items-center gap-1 text-xs">
+                        Commission is calculated based on this amount only
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -436,7 +446,19 @@ export function Income() {
                   name="cautionFee"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Caution Fee (Optional)</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        Caution Fee (Optional)
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <InfoIcon className="h-3 w-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[250px]">
+                              <p>Caution fee is refundable and not part of the commission calculation.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -450,6 +472,9 @@ export function Income() {
                       <div className="text-xs text-muted-foreground mt-1">
                         {field.value ? formatCurrency(Number(field.value)) : "-"}
                       </div>
+                      <FormDescription className="text-xs">
+                        Not included in commission calculations
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -487,6 +512,9 @@ export function Income() {
                 <div className="text-xs text-muted-foreground mt-1">
                   Primary Amount + Caution Fee - Commission
                 </div>
+                <p className="text-xs mt-2 text-muted-foreground italic">
+                  Note: Commission is based only on the primary amount. Caution fee is not included when calculating commissions.
+                </p>
               </div>
               
               <DialogFooter>
@@ -571,6 +599,9 @@ export function Income() {
                       <div className="text-xs text-muted-foreground mt-1">
                         {formatCurrency(form.watch("primaryAmount") || 0)}
                       </div>
+                      <FormDescription className="flex items-center gap-1 text-xs">
+                        Commission is calculated based on this amount only
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -580,7 +611,19 @@ export function Income() {
                   name="cautionFee"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Caution Fee (Optional)</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        Caution Fee (Optional)
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <InfoIcon className="h-3 w-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[250px]">
+                              <p>Caution fee is refundable and not part of the commission calculation.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -594,6 +637,9 @@ export function Income() {
                       <div className="text-xs text-muted-foreground mt-1">
                         {field.value ? formatCurrency(Number(field.value)) : "-"}
                       </div>
+                      <FormDescription className="text-xs">
+                        Not included in commission calculations
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -631,6 +677,9 @@ export function Income() {
                 <div className="text-xs text-muted-foreground mt-1">
                   Primary Amount + Caution Fee - Commission
                 </div>
+                <p className="text-xs mt-2 text-muted-foreground italic">
+                  Note: Commission is based only on the primary amount. Caution fee is not included when calculating commissions.
+                </p>
               </div>
               
               <DialogFooter>
