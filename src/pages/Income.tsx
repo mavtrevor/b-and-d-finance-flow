@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
-import { Income, incomeApi } from "@/lib/db";
+import { incomeApi } from "@/lib/db";
+import type { Income as IncomeType } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { 
   Card, 
@@ -13,7 +14,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { 
   Dialog,
@@ -57,7 +57,7 @@ const formSchema = z.object({
 type IncomeFormValues = z.infer<typeof formSchema>;
 
 export function Income() {
-  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [incomes, setIncomes] = useState<IncomeType[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState<string>(() => {
     const today = new Date();
@@ -77,6 +77,7 @@ export function Income() {
       cautionFee: 0,
       commission: 0,
     },
+    mode: "onChange", // Enable validation on change for better user experience
   });
 
   useEffect(() => {
@@ -122,7 +123,7 @@ export function Income() {
       const commission = Number(values.commission);
       const netIncome = primaryAmount + cautionFee - commission;
 
-      const incomeData: Omit<Income, 'id' | 'createdAt' | 'updatedAt'> = {
+      const incomeData: Omit<IncomeType, 'id' | 'createdAt' | 'updatedAt'> = {
         date: new Date(values.date),
         clientName: values.clientName,
         broughtBy: values.broughtBy,
@@ -161,6 +162,16 @@ export function Income() {
     const cautionFee = form.watch("cautionFee") || 0;
     const commission = form.watch("commission") || 0;
     return primaryAmount + cautionFee - commission;
+  };
+
+  // Format currency for display
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', { 
+      style: 'currency', 
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0 
+    }).format(amount);
   };
 
   return (
@@ -239,11 +250,14 @@ export function Income() {
                               type="number"
                               {...field}
                               onChange={(e) => {
-                                field.onChange(e);
+                                field.onChange(Number(e.target.value));
                                 form.trigger(["primaryAmount", "commission", "cautionFee"]);
                               }}
                             />
                           </FormControl>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {formatCurrency(form.watch("primaryAmount") || 0)}
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -264,6 +278,9 @@ export function Income() {
                               }}
                             />
                           </FormControl>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {field.value ? formatCurrency(Number(field.value)) : "-"}
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -279,11 +296,14 @@ export function Income() {
                               type="number"
                               {...field}
                               onChange={(e) => {
-                                field.onChange(e);
+                                field.onChange(Number(e.target.value));
                                 form.trigger(["primaryAmount", "commission", "cautionFee"]);
                               }}
                             />
                           </FormControl>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {formatCurrency(form.watch("commission") || 0)}
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -293,12 +313,10 @@ export function Income() {
                   <div className="border rounded p-3 bg-muted/30">
                     <div className="text-sm font-medium">Net Income</div>
                     <div className="text-2xl font-bold">
-                      {new Intl.NumberFormat('en-NG', { 
-                        style: 'currency', 
-                        currency: 'NGN',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0 
-                      }).format(calculateNetIncome())}
+                      {formatCurrency(calculateNetIncome())}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Primary Amount + Caution Fee - Commission
                     </div>
                   </div>
                   
@@ -330,7 +348,7 @@ export function Income() {
               No income entries found for this month.
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -349,30 +367,10 @@ export function Income() {
                       <TableCell>{new Date(income.date).toLocaleDateString()}</TableCell>
                       <TableCell>{income.clientName}</TableCell>
                       <TableCell>{income.broughtBy}</TableCell>
-                      <TableCell className="text-right">{new Intl.NumberFormat('en-NG', { 
-                        style: 'currency', 
-                        currency: 'NGN',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0 
-                      }).format(income.primaryAmount)}</TableCell>
-                      <TableCell className="text-right">{income.cautionFee ? new Intl.NumberFormat('en-NG', { 
-                        style: 'currency', 
-                        currency: 'NGN',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0 
-                      }).format(income.cautionFee) : '-'}</TableCell>
-                      <TableCell className="text-right">{new Intl.NumberFormat('en-NG', { 
-                        style: 'currency', 
-                        currency: 'NGN',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0 
-                      }).format(income.commission)}</TableCell>
-                      <TableCell className="text-right font-medium">{new Intl.NumberFormat('en-NG', { 
-                        style: 'currency', 
-                        currency: 'NGN',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0 
-                      }).format(income.netIncome)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(income.primaryAmount)}</TableCell>
+                      <TableCell className="text-right">{income.cautionFee ? formatCurrency(income.cautionFee) : '-'}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(income.commission)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(income.netIncome)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -380,18 +378,13 @@ export function Income() {
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-between border-t p-4">
+        <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t p-4 gap-2">
           <div>
             <span className="text-sm text-muted-foreground">Total Entries: {incomes.length}</span>
           </div>
-          <div>
+          <div className="text-right">
             <span className="font-medium">
-              Total Net Income: {new Intl.NumberFormat('en-NG', { 
-                style: 'currency', 
-                currency: 'NGN',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0 
-              }).format(incomes.reduce((sum, income) => sum + income.netIncome, 0))}
+              Total Net Income: {formatCurrency(incomes.reduce((sum, income) => sum + income.netIncome, 0))}
             </span>
           </div>
         </CardFooter>
