@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export function AppSidebar() {
   const { signOut } = useAuth();
@@ -93,8 +94,9 @@ export function AppSidebar() {
   return (
     <Sidebar className="z-50">
       <SidebarContent>
-        <div className="flex items-center p-4">
+        <div className="flex items-center justify-between p-4">
           <h1 className="text-xl font-semibold text-sidebar-foreground">B&D Apartments</h1>
+          <ThemeToggle />
         </div>
 
         <SidebarGroup>
