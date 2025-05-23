@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { SummaryCard } from "@/components/ui/summary-card";
@@ -20,21 +19,37 @@ import {
 } from "recharts";
 
 export function Dashboard() {
-  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  // Initialize selectedMonth with current month instead of empty string
+  const getCurrentMonth = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonth());
   const [loading, setLoading] = useState<boolean>(true);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   useEffect(() => {
-    if (!selectedMonth) return;
+    console.log("Dashboard useEffect triggered with selectedMonth:", selectedMonth);
+    
+    if (!selectedMonth) {
+      console.log("No selectedMonth, skipping data fetch");
+      return;
+    }
 
     const fetchData = async () => {
+      console.log("Starting data fetch for month:", selectedMonth);
       setLoading(true);
       try {
         const [incomesData, expensesData] = await Promise.all([
           incomeApi.getByMonth(selectedMonth),
           expenseApi.getByMonth(selectedMonth),
         ]);
+        
+        console.log("Fetched incomes data:", incomesData);
+        console.log("Fetched expenses data:", expensesData);
+        
         setIncomes(incomesData);
         setExpenses(expensesData);
       } catch (error) {
@@ -53,6 +68,15 @@ export function Dashboard() {
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const netOperatingProfit = totalIncome - totalCommission - totalExpenses;
   const partnerShare = netOperatingProfit / 2;
+
+  console.log("Dashboard calculations:", {
+    totalIncome,
+    totalCommission,
+    totalExpenses,
+    netOperatingProfit,
+    partnerShare,
+    selectedMonth
+  });
 
   // Prepare data for charts
   const incomeVsExpenseData = [
@@ -85,6 +109,7 @@ export function Dashboard() {
         description="Financial overview for selected period"
         showMonthSelector
         onMonthChange={setSelectedMonth}
+        initialMonth={selectedMonth}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
