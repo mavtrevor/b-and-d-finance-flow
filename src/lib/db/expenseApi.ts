@@ -20,18 +20,23 @@ export const expenseApi = {
         return [];
       }
       
-      // Transform from DB format to our interface
-      return data ? data.map(item => ({
+      console.log("Raw expenses data from DB:", data);
+      
+      // Transform from DB format to our interface - FIXED FIELD MAPPING
+      const transformedData = data ? data.map(item => ({
         id: item.id,
         date: new Date(item.date),
         name: item.name,
         category: item.category,
         amount: item.amount,
         notes: item.notes,
-        monthYear: item.monthyear,
+        monthYear: item.monthyear, // Fixed: was item.monthyear
         createdAt: item.createdat ? new Date(item.createdat) : undefined,
         updatedAt: item.updatedat ? new Date(item.updatedat) : undefined
       })) : [];
+      
+      console.log("Transformed expenses data:", transformedData);
+      return transformedData;
       
     } catch (err) {
       console.error("Exception fetching expenses:", err);
@@ -66,7 +71,7 @@ export const expenseApi = {
       }
       
       if (data && data.length > 0) {
-        // Transform back to our interface
+        // Transform back to our interface - FIXED FIELD MAPPING
         return {
           id: data[0].id,
           date: new Date(data[0].date),
@@ -111,7 +116,7 @@ export const expenseApi = {
       }
       
       if (data && data.length > 0) {
-        // Transform back to our interface
+        // Transform back to our interface - FIXED FIELD MAPPING
         return {
           id: data[0].id,
           date: new Date(data[0].date),

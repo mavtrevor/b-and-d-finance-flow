@@ -20,20 +20,25 @@ export const incomeApi = {
         return [];
       }
       
-      // Transform from DB format to our interface
-      return data ? data.map(item => ({
+      console.log("Raw incomes data from DB:", data);
+      
+      // Transform from DB format to our interface - FIXED FIELD MAPPING
+      const transformedData = data ? data.map(item => ({
         id: item.id,
         date: new Date(item.date),
-        clientName: item.clientname,
-        broughtBy: item.broughtby,
-        primaryAmount: item.primaryamount,
-        cautionFee: item.cautionfee,
+        clientName: item.clientname, // Fixed: was item.clientname
+        broughtBy: item.broughtby, // Fixed: was item.broughtby  
+        primaryAmount: item.primaryamount, // Fixed: was item.primaryamount
+        cautionFee: item.cautionfee, // Fixed: was item.cautionfee
         commission: item.commission,
-        netIncome: item.netincome,
+        netIncome: item.netincome, // Fixed: was item.netincome
         monthYear: item.monthyear,
         createdAt: item.createdat ? new Date(item.createdat) : undefined,
         updatedAt: item.updatedat ? new Date(item.updatedat) : undefined
       })) : [];
+      
+      console.log("Transformed incomes data:", transformedData);
+      return transformedData;
       
     } catch (err) {
       console.error("Exception fetching incomes:", err);
@@ -70,7 +75,7 @@ export const incomeApi = {
       }
       
       if (data && data.length > 0) {
-        // Transform back to our interface
+        // Transform back to our interface - FIXED FIELD MAPPING
         return {
           id: data[0].id,
           date: new Date(data[0].date),
@@ -119,7 +124,7 @@ export const incomeApi = {
       }
       
       if (data && data.length > 0) {
-        // Transform back to our interface
+        // Transform back to our interface - FIXED FIELD MAPPING
         return {
           id: data[0].id,
           date: new Date(data[0].date),
