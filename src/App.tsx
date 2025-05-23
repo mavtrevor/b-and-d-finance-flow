@@ -8,6 +8,11 @@ import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
 import { Login } from "@/pages/Login";
 import { Dashboard } from "@/pages/Dashboard";
 import { Settings } from "@/pages/Settings";
+import { Income } from "@/pages/Income";
+import { Expenses } from "@/pages/Expenses";
+import { Withdrawals } from "@/pages/Withdrawals";
+import { Reports } from "@/pages/Reports";
+import { PartnerBalances } from "@/pages/PartnerBalances";
 
 const App = () => (
   <AuthProvider>
@@ -25,11 +30,11 @@ const App = () => (
           {/* Protected routes */}
           <Route path="/" element={<AuthenticatedLayout />}>
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="income" element={<div className="p-4">Income Page (Coming Soon)</div>} />
-            <Route path="expenses" element={<div className="p-4">Expenses Page (Coming Soon)</div>} />
-            <Route path="withdrawals" element={<div className="p-4">Withdrawals Page (Coming Soon)</div>} />
-            <Route path="reports" element={<div className="p-4">Reports Page (Coming Soon)</div>} />
-            <Route path="partner-balances" element={<div className="p-4">Partner Balances (Coming Soon)</div>} />
+            <Route path="income" element={<Income />} />
+            <Route path="expenses" element={<Expenses />} />
+            <Route path="withdrawals" element={<Withdrawals />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="partner-balances" element={<PartnerBalances />} />
             <Route path="settings" element={<Settings />} />
           </Route>
           
