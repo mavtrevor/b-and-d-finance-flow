@@ -9,7 +9,7 @@ export const incomeApi = {
     console.log(`Fetching incomes for ${monthYear}`);
     
     try {
-      // Query from Supabase
+      // Query from Supabase - removed user filtering to show all data
       const { data, error } = await supabase
         .from('incomes')
         .select('*')
@@ -106,6 +106,7 @@ export const incomeApi = {
       if (income.netIncome !== undefined) dbIncome.netincome = income.netIncome;
       if (income.date !== undefined) dbIncome.date = income.date.toISOString();
       
+      // Removed user_id filtering - allow editing any record
       const { data, error } = await supabase
         .from('incomes')
         .update(dbIncome)
@@ -143,6 +144,7 @@ export const incomeApi = {
 
   delete: async (id: string): Promise<boolean> => {
     try {
+      // Removed user_id filtering - allow deleting any record
       const { error } = await supabase
         .from('incomes')
         .delete()

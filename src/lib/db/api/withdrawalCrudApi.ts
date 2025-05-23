@@ -10,7 +10,7 @@ export const withdrawalCrudApi = {
     console.log(`Fetching withdrawals for ${monthYear}`);
     
     try {
-      // Query from Supabase
+      // Query from Supabase - removed user filtering to show all data
       const { data, error } = await supabase
         .from('withdrawals')
         .select('*')
@@ -95,11 +95,11 @@ export const withdrawalCrudApi = {
       // Add updated timestamp
       updateData.updatedat = new Date().toISOString();
 
+      // Removed user_id filtering - allow editing any record
       const { data, error } = await supabase
         .from('withdrawals')
         .update(updateData)
         .eq('id', id)
-        .eq('user_id', user.id) // Security check - ensure the user owns this record
         .select();
       
       if (error) {
@@ -120,11 +120,11 @@ export const withdrawalCrudApi = {
   
   delete: async (id: string, user: User): Promise<boolean> => {
     try {
+      // Removed user_id filtering - allow deleting any record
       const { error } = await supabase
         .from('withdrawals')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id); // Security check - ensure the user owns this record
+        .eq('id', id);
       
       if (error) {
         console.error("Error deleting withdrawal:", error);

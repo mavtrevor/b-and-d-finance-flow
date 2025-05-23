@@ -9,7 +9,7 @@ export const expenseApi = {
     console.log(`Fetching expenses for ${monthYear}`);
     
     try {
-      // Query from Supabase
+      // Query from Supabase - removed user filtering to show all data
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
@@ -98,6 +98,7 @@ export const expenseApi = {
       if (expense.notes !== undefined) dbExpense.notes = expense.notes;
       if (expense.date !== undefined) dbExpense.date = expense.date.toISOString();
       
+      // Removed user_id filtering - allow editing any record
       const { data, error } = await supabase
         .from('expenses')
         .update(dbExpense)
@@ -133,6 +134,7 @@ export const expenseApi = {
 
   delete: async (id: string): Promise<boolean> => {
     try {
+      // Removed user_id filtering - allow deleting any record
       const { error } = await supabase
         .from('expenses')
         .delete()
