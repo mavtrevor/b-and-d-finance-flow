@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export function Settings() {
   const { currentUser, signOut } = useAuth();
@@ -55,6 +56,22 @@ export function Settings() {
             >
               {loading ? "Logging out..." : "Logout"}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>Customize the application theme</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Theme</p>
+              <p className="text-sm text-muted-foreground">Change the application theme</p>
+            </div>
+            <ThemeToggle />
           </div>
         </CardContent>
       </Card>
