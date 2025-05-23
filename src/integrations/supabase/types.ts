@@ -9,7 +9,90 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          createdat: string | null
+          date: string
+          id: string
+          monthyear: string
+          name: string
+          notes: string | null
+          updatedat: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          createdat?: string | null
+          date?: string
+          id?: string
+          monthyear: string
+          name: string
+          notes?: string | null
+          updatedat?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          createdat?: string | null
+          date?: string
+          id?: string
+          monthyear?: string
+          name?: string
+          notes?: string | null
+          updatedat?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      incomes: {
+        Row: {
+          broughtby: string
+          cautionfee: number | null
+          clientname: string
+          commission: number
+          createdat: string | null
+          date: string
+          id: string
+          monthyear: string
+          netincome: number
+          primaryamount: number
+          updatedat: string | null
+          user_id: string
+        }
+        Insert: {
+          broughtby: string
+          cautionfee?: number | null
+          clientname: string
+          commission: number
+          createdat?: string | null
+          date?: string
+          id?: string
+          monthyear: string
+          netincome: number
+          primaryamount: number
+          updatedat?: string | null
+          user_id: string
+        }
+        Update: {
+          broughtby?: string
+          cautionfee?: number | null
+          clientname?: string
+          commission?: number
+          createdat?: string | null
+          date?: string
+          id?: string
+          monthyear?: string
+          netincome?: number
+          primaryamount?: number
+          updatedat?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
