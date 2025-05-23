@@ -1,17 +1,34 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Partner } from "./types";
+import { withdrawalAnalyticsApi } from "./api/withdrawalAnalyticsApi";
 
 // For simplicity, we'll define partners as a static list
 // In a real application, this could be stored in the database
-const PARTNERS: Partner[] = [
-  { id: "1", name: "Daniel", sharePercentage: 50 },
-  { id: "2", name: "Benjamin", sharePercentage: 50 }
+const PARTNERS: Omit<Partner, 'balance' | 'withdrawals'>[] = [
+  { id: "1", name: "Daniel", share: 50 },
+  { id: "2", name: "Benjamin", share: 50 }
 ];
 
 export const partnerApi = {
   getAll: async (): Promise<Partner[]> => {
-    return PARTNERS;
+    // Calculate actual balances and withdrawals for each partner
+    const partnersWithBalances = await Promise.all(
+      PARTNERS.map(async (partner) => {
+        const withdrawals = await withdrawalAnalyticsApi.getTotalWithdrawalsByPartner(partner.name);
+        const netProfit = await partnerApi.getNetOperatingProfit();
+        const shareAmount = netProfit * (partner.share / 100);
+        const balance = shareAmount - withdrawals;
+        
+        return {
+          ...partner,
+          balance,
+          withdrawals
+        };
+      })
+    );
+    
+    return partnersWithBalances;
   },
 
   getTotalAvailableBalance: async (): Promise<number> => {
