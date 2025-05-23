@@ -8,40 +8,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-
-const formSchema = z.object({
-  date: z.string().min(1, { message: "Date is required" }),
-  amount: z.coerce.number().min(1, { message: "Amount is required" }),
-  recipient: z.string().min(1, { message: "Recipient is required" }),
-  description: z.string().optional(),
-});
-
-export type WithdrawalFormValues = z.infer<typeof formSchema>;
+import { WithdrawalForm, WithdrawalFormValues } from "./WithdrawalForm";
 
 interface WithdrawalDialogProps {
   isOpen: boolean;
@@ -63,45 +33,34 @@ export function WithdrawalDialog({
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [submitLoading, setSubmitLoading] = useState(false);
-  const recipients = ["Desmond", "Bethel"];
   
-  // Dialog title and button text based on mode
+  // Dialog title and descriptions based on mode
   const dialogTitle = isEditMode ? "Edit Withdrawal" : "Record Withdrawal";
   const dialogDescription = isEditMode 
     ? "Update the details for this partner withdrawal." 
     : "Enter the details for this partner withdrawal.";
   const submitButtonText = isEditMode ? "Update Withdrawal" : "Record Withdrawal";
 
-  const form = useForm<WithdrawalFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      date: new Date().toISOString().split('T')[0],
-      amount: 0,
-      recipient: "",
-      description: "",
-    },
-  });
-
-  // Reset form when withdrawal or edit mode changes
-  useState(() => {
+  // Get default values for the form
+  const getDefaultValues = () => {
     if (isEditMode && currentWithdrawal) {
-      form.reset({
+      return {
         date: currentWithdrawal.date.toISOString().split('T')[0],
         amount: Number(currentWithdrawal.amount),
         recipient: currentWithdrawal.recipient,
         description: currentWithdrawal.description || "",
-      });
+      };
     } else {
-      form.reset({
+      return {
         date: new Date().toISOString().split('T')[0],
         amount: 0,
         recipient: "",
         description: "",
-      });
+      };
     }
-  });
+  };
 
-  const onSubmit = async (values: WithdrawalFormValues) => {
+  const handleSubmit = async (values: WithdrawalFormValues) => {
     if (!currentUser) {
       toast({
         variant: "destructive",
@@ -154,14 +113,6 @@ export function WithdrawalDialog({
         }
       }
       
-      // Reset form and state
-      form.reset({
-        date: new Date().toISOString().split('T')[0],
-        amount: 0,
-        recipient: "",
-        description: "",
-      });
-      
       // Close dialog and notify parent of success
       onOpenChange(false);
       onSuccess();
@@ -178,9 +129,7 @@ export function WithdrawalDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      onOpenChange(open);
-    }}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
@@ -189,107 +138,13 @@ export function WithdrawalDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="recipient"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Recipient</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select recipient" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {recipients.map((recipient) => (
-                        <SelectItem key={recipient} value={recipient}>
-                          {recipient}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {formatCurrency(form.watch("amount") || 0)}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      {...field} 
-                      placeholder="Additional notes about this withdrawal" 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)} 
-                disabled={submitLoading}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submitLoading}>
-                {submitLoading ? (
-                  <>
-                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground"></span>
-                    {isEditMode ? "Updating..." : "Saving..."}
-                  </>
-                ) : (
-                  submitButtonText
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        <WithdrawalForm
+          defaultValues={getDefaultValues()}
+          onSubmit={handleSubmit}
+          isSubmitting={submitLoading}
+          onCancel={() => onOpenChange(false)}
+          submitButtonText={submitButtonText}
+        />
       </DialogContent>
     </Dialog>
   );
