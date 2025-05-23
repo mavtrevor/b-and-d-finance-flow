@@ -6,7 +6,6 @@ import {
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle
 } from "@/components/ui/card";
@@ -23,6 +22,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -37,13 +46,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Wallet, Plus } from "lucide-react";
+import { Wallet, Plus, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { SummaryCard } from "@/components/ui/summary-card";
 import { partnerApi, Withdrawal, withdrawalApi } from "@/lib/db";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatCurrency, formatDate } from "@/utils/formatters";
 
 const formSchema = z.object({
   date: z.string().min(1, { message: "Date is required" }),
@@ -60,11 +77,15 @@ export function Withdrawals() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [withdrawalsThisMonth, setWithdrawalsThisMonth] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [currentWithdrawal, setCurrentWithdrawal] = useState<Withdrawal | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -82,6 +103,26 @@ export function Withdrawals() {
     fetchBalances();
     fetchWithdrawals();
   }, [currentMonth]);
+
+  useEffect(() => {
+    // When in edit mode and a withdrawal is selected, update the form values
+    if (isEditMode && currentWithdrawal) {
+      form.reset({
+        date: currentWithdrawal.date.toISOString().split('T')[0],
+        amount: Number(currentWithdrawal.amount),
+        recipient: currentWithdrawal.recipient,
+        description: currentWithdrawal.description || "",
+      });
+    } else {
+      // Reset form to default values when not in edit mode
+      form.reset({
+        date: new Date().toISOString().split('T')[0],
+        amount: 0,
+        recipient: "",
+        description: "",
+      });
+    }
+  }, [isEditMode, currentWithdrawal, form]);
 
   const fetchBalances = async () => {
     setLoading(true);
@@ -121,6 +162,57 @@ export function Withdrawals() {
     setCurrentMonth(month);
   };
 
+  const handleEditWithdrawal = (withdrawal: Withdrawal) => {
+    setCurrentWithdrawal(withdrawal);
+    setIsEditMode(true);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteWithdrawal = (withdrawal: Withdrawal) => {
+    setCurrentWithdrawal(withdrawal);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteWithdrawal = async () => {
+    if (!currentUser || !currentWithdrawal) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please log in to delete a withdrawal.",
+      });
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      const success = await withdrawalApi.delete(currentWithdrawal.id!, currentUser);
+      
+      if (success) {
+        toast({
+          title: "Withdrawal Deleted",
+          description: `Successfully deleted withdrawal of ${formatCurrency(Number(currentWithdrawal.amount))}`,
+        });
+        
+        // Reload data
+        fetchBalances();
+        fetchWithdrawals();
+      } else {
+        throw new Error("Failed to delete withdrawal");
+      }
+    } catch (error: any) {
+      console.error("Error deleting withdrawal:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to Delete Withdrawal",
+        description: error.message || "There was a problem deleting the withdrawal.",
+      });
+    } finally {
+      setDeleteLoading(false);
+      setIsDeleteDialogOpen(false);
+      setCurrentWithdrawal(null);
+    }
+  };
+
   const onSubmit = async (values: WithdrawalFormValues) => {
     if (!currentUser) {
       toast({
@@ -133,70 +225,82 @@ export function Withdrawals() {
 
     setSubmitLoading(true);
     try {
-      const withdrawalData: Omit<Withdrawal, 'id' | 'createdAt' | 'updatedAt'> = {
-        date: new Date(values.date),
-        amount: values.amount,
-        recipient: values.recipient,
-        description: values.description,
-        monthYear: currentMonth,
-      };
+      if (isEditMode && currentWithdrawal) {
+        // Handle update
+        const withdrawalData: Partial<Withdrawal> = {
+          date: new Date(values.date),
+          amount: values.amount,
+          recipient: values.recipient,
+          description: values.description,
+        };
 
-      const result = await withdrawalApi.add(withdrawalData, currentUser);
-      
-      if (result) {
-        toast({
-          title: "Withdrawal Recorded",
-          description: `Successfully recorded a withdrawal of ${formatCurrency(values.amount)} to ${values.recipient}`,
-        });
+        const result = await withdrawalApi.update(currentWithdrawal.id!, withdrawalData, currentUser);
         
-        // Reset form and refresh data
-        form.reset({
-          date: new Date().toISOString().split('T')[0],
-          amount: 0,
-          recipient: "",
-          description: "",
-        });
-        
-        // Reload data
-        fetchBalances();
-        fetchWithdrawals();
-        setIsDialogOpen(false);
+        if (result) {
+          toast({
+            title: "Withdrawal Updated",
+            description: `Successfully updated the withdrawal of ${formatCurrency(values.amount)} to ${values.recipient}`,
+          });
+        } else {
+          throw new Error("Failed to update withdrawal");
+        }
       } else {
-        throw new Error("Failed to record withdrawal");
+        // Handle create
+        const withdrawalData: Omit<Withdrawal, 'id' | 'createdAt' | 'updatedAt'> = {
+          date: new Date(values.date),
+          amount: values.amount,
+          recipient: values.recipient,
+          description: values.description,
+          monthYear: currentMonth,
+        };
+
+        const result = await withdrawalApi.add(withdrawalData, currentUser);
+        
+        if (result) {
+          toast({
+            title: "Withdrawal Recorded",
+            description: `Successfully recorded a withdrawal of ${formatCurrency(values.amount)} to ${values.recipient}`,
+          });
+        } else {
+          throw new Error("Failed to record withdrawal");
+        }
       }
+      
+      // Reset form and state
+      form.reset({
+        date: new Date().toISOString().split('T')[0],
+        amount: 0,
+        recipient: "",
+        description: "",
+      });
+      
+      // Reload data
+      fetchBalances();
+      fetchWithdrawals();
+      setIsDialogOpen(false);
+      setIsEditMode(false);
+      setCurrentWithdrawal(null);
     } catch (error: any) {
-      console.error("Error recording withdrawal:", error);
+      console.error(`Error ${isEditMode ? 'updating' : 'recording'} withdrawal:`, error);
       toast({
         variant: "destructive",
-        title: "Failed to Record Withdrawal",
-        description: error.message || "There was a problem recording the withdrawal.",
+        title: `Failed to ${isEditMode ? 'Update' : 'Record'} Withdrawal`,
+        description: error.message || `There was a problem ${isEditMode ? 'updating' : 'recording'} the withdrawal.`,
       });
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  // Format currency for display
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-NG', { 
-      style: 'currency', 
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0 
-    }).format(amount);
-  };
-
-  // Format date for display
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
   const remainingBalance = totalBalance;
   const recipients = ["Desmond", "Bethel"];
+  
+  // Dialog title and button text based on mode
+  const dialogTitle = isEditMode ? "Edit Withdrawal" : "Record Withdrawal";
+  const dialogDescription = isEditMode 
+    ? "Update the details for this partner withdrawal." 
+    : "Enter the details for this partner withdrawal.";
+  const submitButtonText = isEditMode ? "Update Withdrawal" : "Record Withdrawal";
 
   return (
     <div className="w-full max-w-full">
@@ -207,7 +311,11 @@ export function Withdrawals() {
         onMonthChange={handleMonthChange}
         initialMonth={currentMonth}
         actions={
-          <Button onClick={() => setIsDialogOpen(true)}>
+          <Button onClick={() => {
+            setIsEditMode(false);
+            setCurrentWithdrawal(null);
+            setIsDialogOpen(true);
+          }}>
             <Plus className="mr-2 h-4 w-4" /> Record Withdrawal
           </Button>
         }
@@ -246,6 +354,7 @@ export function Withdrawals() {
                   <TableHead>Recipient</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead className="w-[100px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -255,6 +364,28 @@ export function Withdrawals() {
                     <TableCell>{withdrawal.recipient}</TableCell>
                     <TableCell>{formatCurrency(Number(withdrawal.amount))}</TableCell>
                     <TableCell>{withdrawal.description || "-"}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditWithdrawal(withdrawal)}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteWithdrawal(withdrawal)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -269,13 +400,19 @@ export function Withdrawals() {
         </CardContent>
       </Card>
 
-      {/* Record Withdrawal Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Create/Edit Withdrawal Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsEditMode(false);
+          setCurrentWithdrawal(null);
+        }
+        setIsDialogOpen(open);
+      }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Record Withdrawal</DialogTitle>
+            <DialogTitle>{dialogTitle}</DialogTitle>
             <DialogDescription>
-              Enter the details for this partner withdrawal.
+              {dialogDescription}
             </DialogDescription>
           </DialogHeader>
 
@@ -304,6 +441,7 @@ export function Withdrawals() {
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -358,17 +496,26 @@ export function Withdrawals() {
               />
               
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitLoading}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsDialogOpen(false);
+                    setIsEditMode(false);
+                    setCurrentWithdrawal(null);
+                  }} 
+                  disabled={submitLoading}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={submitLoading}>
                   {submitLoading ? (
                     <>
                       <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground"></span>
-                      Saving...
+                      {isEditMode ? "Updating..." : "Saving..."}
                     </>
                   ) : (
-                    "Record Withdrawal"
+                    submitButtonText
                   )}
                 </Button>
               </DialogFooter>
@@ -376,6 +523,48 @@ export function Withdrawals() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this withdrawal? This action cannot be undone.
+              {currentWithdrawal && (
+                <div className="mt-4 p-3 border rounded-md bg-muted/50">
+                  <p><span className="font-medium">Date:</span> {formatDate(currentWithdrawal.date)}</p>
+                  <p><span className="font-medium">Recipient:</span> {currentWithdrawal.recipient}</p>
+                  <p><span className="font-medium">Amount:</span> {formatCurrency(Number(currentWithdrawal.amount))}</p>
+                  {currentWithdrawal.description && (
+                    <p><span className="font-medium">Description:</span> {currentWithdrawal.description}</p>
+                  )}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDeleteWithdrawal();
+              }}
+              disabled={deleteLoading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteLoading ? (
+                <>
+                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground"></span>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

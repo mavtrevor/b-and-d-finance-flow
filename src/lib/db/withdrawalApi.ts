@@ -84,6 +84,88 @@ export const withdrawalApi = {
     }
   },
   
+  update: async (id: string, withdrawalData: Partial<Withdrawal>, user: User): Promise<Withdrawal | null> => {
+    try {
+      // Prepare the update data
+      const updateData: Record<string, any> = {};
+      
+      if (withdrawalData.date) {
+        updateData.date = withdrawalData.date.toISOString();
+      }
+      
+      if (withdrawalData.amount !== undefined) {
+        updateData.amount = withdrawalData.amount;
+      }
+      
+      if (withdrawalData.recipient !== undefined) {
+        updateData.recipient = withdrawalData.recipient;
+      }
+      
+      if (withdrawalData.description !== undefined) {
+        updateData.description = withdrawalData.description;
+      }
+      
+      // Always update the monthYear if date is changed
+      if (withdrawalData.date) {
+        updateData.monthyear = formatMonthYear(withdrawalData.date);
+      }
+      
+      // Add updated timestamp
+      updateData.updatedat = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('withdrawals')
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', user.id) // Security check - ensure the user owns this record
+        .select();
+      
+      if (error) {
+        console.error("Error updating withdrawal:", error);
+        return null;
+      }
+      
+      if (data && data.length > 0) {
+        // Transform back to our interface
+        return {
+          id: data[0].id,
+          date: new Date(data[0].date),
+          amount: data[0].amount,
+          recipient: data[0].recipient,
+          description: data[0].description,
+          monthYear: data[0].monthyear,
+          createdAt: data[0].createdat ? new Date(data[0].createdat) : undefined,
+          updatedAt: data[0].updatedat ? new Date(data[0].updatedat) : undefined
+        };
+      }
+      
+      return null;
+    } catch (err) {
+      console.error("Exception updating withdrawal:", err);
+      return null;
+    }
+  },
+  
+  delete: async (id: string, user: User): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('withdrawals')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id); // Security check - ensure the user owns this record
+      
+      if (error) {
+        console.error("Error deleting withdrawal:", error);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error("Exception deleting withdrawal:", err);
+      return false;
+    }
+  },
+  
   getTotalWithdrawals: async (): Promise<number> => {
     try {
       const { data, error } = await supabase
