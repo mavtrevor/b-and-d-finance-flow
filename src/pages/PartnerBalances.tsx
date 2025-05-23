@@ -8,7 +8,7 @@ import {
   CardHeader, 
   CardTitle
 } from "@/components/ui/card";
-import { partnerApi } from "@/lib/db";
+import { partnerApi, withdrawalApi } from "@/lib/db";
 import { Users, Award, InfoIcon } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -18,6 +18,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Partner } from "@/lib/db";
+import { SummaryCard } from "@/components/ui/summary-card";
 
 export function PartnerBalances() {
   const [currentMonth, setCurrentMonth] = useState<string>(() => {
@@ -26,12 +27,14 @@ export function PartnerBalances() {
   });
   const [managerCommission, setManagerCommission] = useState<number>(0);
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [totalWithdrawals, setTotalWithdrawals] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
   useEffect(() => {
     fetchManagerCommission();
     fetchPartners();
+    fetchTotalWithdrawals();
   }, [currentMonth]);
 
   const fetchManagerCommission = async () => {
@@ -64,6 +67,20 @@ export function PartnerBalances() {
       });
     }
   };
+  
+  const fetchTotalWithdrawals = async () => {
+    try {
+      const withdrawalsTotal = await withdrawalApi.getTotalWithdrawals();
+      setTotalWithdrawals(withdrawalsTotal);
+    } catch (error) {
+      console.error("Error fetching total withdrawals:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to load withdrawals data",
+        description: "There was a problem loading the withdrawals data.",
+      });
+    }
+  };
 
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);
@@ -89,6 +106,15 @@ export function PartnerBalances() {
         initialMonth={currentMonth}
       />
       
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <SummaryCard
+          title="Total Withdrawals"
+          value={totalWithdrawals}
+          icon={<Users className="h-4 w-4" />}
+          loading={loading}
+        />
+      </div>
+      
       <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-6">
         {partners.map((partner) => (
           <Card key={partner.id} className="bg-gradient-to-br from-background to-muted">
@@ -100,10 +126,19 @@ export function PartnerBalances() {
               <CardDescription>Share: {partner.share}%</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(partner.balance)}
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">Current balance</p>
+              {loading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin h-4 w-4 border-2 border-primary rounded-full border-t-transparent"></div>
+                  <span>Loading...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(partner.balance)}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">Current balance</p>
+                </>
+              )}
             </CardContent>
           </Card>
         ))}

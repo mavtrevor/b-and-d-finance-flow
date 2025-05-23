@@ -42,7 +42,8 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Wallet, Plus } from "lucide-react";
 import { SummaryCard } from "@/components/ui/summary-card";
-import { partnerApi } from "@/lib/db";
+import { partnerApi, Withdrawal, withdrawalApi } from "@/lib/db";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const formSchema = z.object({
   date: z.string().min(1, { message: "Date is required" }),
@@ -60,8 +61,10 @@ export function Withdrawals() {
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [withdrawalsThisMonth, setWithdrawalsThisMonth] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -77,6 +80,7 @@ export function Withdrawals() {
 
   useEffect(() => {
     fetchBalances();
+    fetchWithdrawals();
   }, [currentMonth]);
 
   const fetchBalances = async () => {
@@ -84,8 +88,9 @@ export function Withdrawals() {
     try {
       const totalAvailable = await partnerApi.getTotalAvailableBalance();
       setTotalBalance(totalAvailable);
-      // For now, set withdrawals this month to 0 since we don't have a withdrawals table
-      setWithdrawalsThisMonth(0);
+      
+      const monthWithdrawals = await withdrawalApi.getTotalWithdrawalsByMonth(currentMonth);
+      setWithdrawalsThisMonth(monthWithdrawals);
     } catch (error) {
       console.error("Error fetching balances:", error);
       toast({
@@ -98,16 +103,77 @@ export function Withdrawals() {
     }
   };
 
+  const fetchWithdrawals = async () => {
+    try {
+      const withdrawalData = await withdrawalApi.getByMonth(currentMonth);
+      setWithdrawals(withdrawalData);
+    } catch (error) {
+      console.error("Error fetching withdrawals:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to load withdrawals",
+        description: "There was a problem loading the withdrawal data.",
+      });
+    }
+  };
+
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);
   };
 
   const onSubmit = async (values: WithdrawalFormValues) => {
-    toast({
-      title: "Coming Soon",
-      description: "Withdrawal recording feature will be implemented in the next phase.",
-    });
-    setIsDialogOpen(false);
+    if (!currentUser) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please log in to record a withdrawal.",
+      });
+      return;
+    }
+
+    setSubmitLoading(true);
+    try {
+      const withdrawalData: Omit<Withdrawal, 'id' | 'createdAt' | 'updatedAt'> = {
+        date: new Date(values.date),
+        amount: values.amount,
+        recipient: values.recipient,
+        description: values.description,
+        monthYear: currentMonth,
+      };
+
+      const result = await withdrawalApi.add(withdrawalData, currentUser);
+      
+      if (result) {
+        toast({
+          title: "Withdrawal Recorded",
+          description: `Successfully recorded a withdrawal of ${formatCurrency(values.amount)} to ${values.recipient}`,
+        });
+        
+        // Reset form and refresh data
+        form.reset({
+          date: new Date().toISOString().split('T')[0],
+          amount: 0,
+          recipient: "",
+          description: "",
+        });
+        
+        // Reload data
+        fetchBalances();
+        fetchWithdrawals();
+        setIsDialogOpen(false);
+      } else {
+        throw new Error("Failed to record withdrawal");
+      }
+    } catch (error: any) {
+      console.error("Error recording withdrawal:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to Record Withdrawal",
+        description: error.message || "There was a problem recording the withdrawal.",
+      });
+    } finally {
+      setSubmitLoading(false);
+    }
   };
 
   // Format currency for display
@@ -120,7 +186,16 @@ export function Withdrawals() {
     }).format(amount);
   };
 
-  const remainingBalance = totalBalance - withdrawalsThisMonth;
+  // Format date for display
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('en-NG', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const remainingBalance = totalBalance;
   const recipients = ["Desmond", "Bethel"];
 
   return (
@@ -163,12 +238,34 @@ export function Withdrawals() {
           <CardDescription>Partner withdrawal records</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-12 text-muted-foreground">
-            <Wallet className="mx-auto h-12 w-12 opacity-30 mb-3" />
-            <h3 className="text-lg font-medium mb-2">No Withdrawal Records</h3>
-            <p className="text-sm">This feature will be implemented in the next phase.</p>
-            <p className="text-sm">You'll need to create the withdrawals table in the database first.</p>
-          </div>
+          {withdrawals.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Recipient</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Description</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {withdrawals.map((withdrawal) => (
+                  <TableRow key={withdrawal.id}>
+                    <TableCell>{formatDate(withdrawal.date)}</TableCell>
+                    <TableCell>{withdrawal.recipient}</TableCell>
+                    <TableCell>{formatCurrency(Number(withdrawal.amount))}</TableCell>
+                    <TableCell>{withdrawal.description || "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <Wallet className="mx-auto h-12 w-12 opacity-30 mb-3" />
+              <h3 className="text-lg font-medium mb-2">No Withdrawal Records</h3>
+              <p className="text-sm">No withdrawals have been recorded for {new Date(currentMonth + "-01").toLocaleString('default', { month: 'long', year: 'numeric' })}.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -261,10 +358,19 @@ export function Withdrawals() {
               />
               
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitLoading}>
                   Cancel
                 </Button>
-                <Button type="submit">Record Withdrawal</Button>
+                <Button type="submit" disabled={submitLoading}>
+                  {submitLoading ? (
+                    <>
+                      <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    "Record Withdrawal"
+                  )}
+                </Button>
               </DialogFooter>
             </form>
           </Form>
