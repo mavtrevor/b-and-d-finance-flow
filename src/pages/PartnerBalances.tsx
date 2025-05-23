@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { 
   Card, 
@@ -7,26 +8,68 @@ import {
   CardHeader, 
   CardTitle
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Users } from "lucide-react";
+import { partnerApi } from "@/lib/db";
+import { Users, Award } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export function PartnerBalances() {
-  // Placeholder data for partners
+  const [currentMonth, setCurrentMonth] = useState<string>(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [managerCommission, setManagerCommission] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  
+  // Fixed partners data with updated names
   const partners = [
-    { id: '1', name: 'Partner A', share: 50, balance: 250000 },
-    { id: '2', name: 'Partner B', share: 50, balance: 250000 },
+    { id: '1', name: 'Desmond', share: 50, balance: 250000 },
+    { id: '2', name: 'Bethel', share: 50, balance: 250000 },
   ];
+
+  useEffect(() => {
+    fetchManagerCommission();
+  }, [currentMonth]);
+
+  const fetchManagerCommission = async () => {
+    setLoading(true);
+    try {
+      const commissionTotal = await partnerApi.getManagerCommission(currentMonth);
+      setManagerCommission(commissionTotal);
+    } catch (error) {
+      console.error("Error fetching manager commission:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to load manager commission",
+        description: "There was a problem loading the commission data.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMonthChange = (month: string) => {
+    setCurrentMonth(month);
+  };
+
+  // Format currency for display
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', { 
+      style: 'currency', 
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0 
+    }).format(amount);
+  };
 
   return (
     <div className="w-full max-w-full">
       <PageHeader
         title="Partner Balances"
         description="Manage profit sharing between partners"
-        actions={
-          <Button disabled>
-            Add Partner
-          </Button>
-        }
+        showMonthSelector
+        onMonthChange={handleMonthChange}
+        initialMonth={currentMonth}
       />
       
       <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-6">
@@ -41,17 +84,40 @@ export function PartnerBalances() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {new Intl.NumberFormat('en-NG', { 
-                  style: 'currency', 
-                  currency: 'NGN',
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0 
-                }).format(partner.balance)}
+                {formatCurrency(partner.balance)}
               </div>
               <p className="text-sm text-muted-foreground mt-2">Current balance</p>
             </CardContent>
           </Card>
         ))}
+        
+        {/* Manager's Commission Card */}
+        <Card className="bg-gradient-to-br from-background to-muted/70 border-primary/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-amber-500" />
+              Sonia (Manager)
+            </CardTitle>
+            <CardDescription>Monthly Commission</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin h-4 w-4 border-2 border-primary rounded-full border-t-transparent"></div>
+                <span>Loading...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(managerCommission)}
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Total commission for {new Date(currentMonth + "-01").toLocaleString('default', { month: 'long', year: 'numeric' })}
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
       
       <Card className="w-full">

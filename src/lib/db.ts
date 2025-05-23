@@ -1,4 +1,3 @@
-
 // Create a simple interface for document types
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -136,6 +135,75 @@ export const incomeApi = {
       console.error("Exception adding income:", err);
       return null;
     }
+  },
+
+  // Update an income entry
+  update: async (id: string, income: Partial<Omit<Income, 'id' | 'createdAt' | 'updatedAt'>>, user: User): Promise<Income | null> => {
+    try {
+      // Transform to DB format
+      const dbIncome: Record<string, any> = {};
+      
+      if (income.clientName !== undefined) dbIncome.clientname = income.clientName;
+      if (income.broughtBy !== undefined) dbIncome.broughtby = income.broughtBy;
+      if (income.primaryAmount !== undefined) dbIncome.primaryamount = income.primaryAmount;
+      if (income.cautionFee !== undefined) dbIncome.cautionfee = income.cautionFee;
+      if (income.commission !== undefined) dbIncome.commission = income.commission;
+      if (income.netIncome !== undefined) dbIncome.netincome = income.netIncome;
+      if (income.date !== undefined) dbIncome.date = income.date.toISOString();
+      
+      const { data, error } = await supabase
+        .from('incomes')
+        .update(dbIncome)
+        .eq('id', id)
+        .select();
+      
+      if (error) {
+        console.error("Error updating income:", error);
+        return null;
+      }
+      
+      if (data && data.length > 0) {
+        // Transform back to our interface
+        return {
+          id: data[0].id,
+          date: new Date(data[0].date),
+          clientName: data[0].clientname,
+          broughtBy: data[0].broughtby,
+          primaryAmount: data[0].primaryamount,
+          cautionFee: data[0].cautionfee,
+          commission: data[0].commission,
+          netIncome: data[0].netincome,
+          monthYear: data[0].monthyear,
+          createdAt: data[0].createdat ? new Date(data[0].createdat) : undefined,
+          updatedAt: data[0].updatedat ? new Date(data[0].updatedat) : undefined
+        };
+      }
+      
+      return null;
+    } catch (err) {
+      console.error("Exception updating income:", err);
+      return null;
+    }
+  },
+
+  // Delete an income entry
+  delete: async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('incomes')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error("Error deleting income:", error);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error("Exception deleting income:", err);
+      return false;
+    }
   }
 };
 
@@ -221,6 +289,71 @@ export const expenseApi = {
       console.error("Exception adding expense:", err);
       return null;
     }
+  },
+
+  // Update an expense entry
+  update: async (id: string, expense: Partial<Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>>, user: User): Promise<Expense | null> => {
+    try {
+      // Transform to DB format
+      const dbExpense: Record<string, any> = {};
+      
+      if (expense.name !== undefined) dbExpense.name = expense.name;
+      if (expense.category !== undefined) dbExpense.category = expense.category;
+      if (expense.amount !== undefined) dbExpense.amount = expense.amount;
+      if (expense.notes !== undefined) dbExpense.notes = expense.notes;
+      if (expense.date !== undefined) dbExpense.date = expense.date.toISOString();
+      
+      const { data, error } = await supabase
+        .from('expenses')
+        .update(dbExpense)
+        .eq('id', id)
+        .select();
+      
+      if (error) {
+        console.error("Error updating expense:", error);
+        return null;
+      }
+      
+      if (data && data.length > 0) {
+        // Transform back to our interface
+        return {
+          id: data[0].id,
+          date: new Date(data[0].date),
+          name: data[0].name,
+          category: data[0].category,
+          amount: data[0].amount,
+          notes: data[0].notes,
+          monthYear: data[0].monthyear,
+          createdAt: data[0].createdat ? new Date(data[0].createdat) : undefined,
+          updatedAt: data[0].updatedat ? new Date(data[0].updatedat) : undefined
+        };
+      }
+      
+      return null;
+    } catch (err) {
+      console.error("Exception updating expense:", err);
+      return null;
+    }
+  },
+
+  // Delete an expense entry
+  delete: async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error("Error deleting expense:", error);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error("Exception deleting expense:", err);
+      return false;
+    }
   }
 };
 
@@ -242,7 +375,31 @@ export const withdrawalApi = {
 // Create partner API 
 export const partnerApi = {
   getAll: async (): Promise<Partner[]> => {
-    // Placeholder - will be implemented when you create the partners table
-    return [];
+    // Return our hardcoded partners for now
+    return [
+      { id: '1', name: 'Desmond', share: 50, balance: 250000 },
+      { id: '2', name: 'Bethel', share: 50, balance: 250000 },
+    ];
+  },
+  
+  // Add method to get manager's commission for current month
+  getManagerCommission: async (monthYear: string): Promise<number> => {
+    try {
+      const { data, error } = await supabase
+        .from('incomes')
+        .select('commission')
+        .eq('monthyear', monthYear);
+      
+      if (error) {
+        console.error("Error fetching manager commission:", error);
+        return 0;
+      }
+      
+      // Sum up all commission values for the month
+      return data ? data.reduce((sum, item) => sum + (item.commission || 0), 0) : 0;
+    } catch (err) {
+      console.error("Exception fetching manager commission:", err);
+      return 0;
+    }
   }
 };
