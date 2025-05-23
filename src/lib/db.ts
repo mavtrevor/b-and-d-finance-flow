@@ -40,6 +40,7 @@ export interface Partner {
   name: string;
   share: number;
   balance: number;
+  withdrawals: number;
 }
 
 // Format date to YYYY-MM for monthYear filter
@@ -474,6 +475,26 @@ export const withdrawalApi = {
       console.error(`Exception fetching total withdrawals for ${monthYear}:`, err);
       return 0;
     }
+  },
+  
+  // New function to get withdrawals by partner name
+  getTotalWithdrawalsByPartner: async (partnerName: string): Promise<number> => {
+    try {
+      const { data, error } = await supabase
+        .from('withdrawals')
+        .select('amount')
+        .eq('recipient', partnerName);
+      
+      if (error) {
+        console.error(`Error fetching withdrawals for partner ${partnerName}:`, error);
+        return 0;
+      }
+      
+      return data ? data.reduce((sum, item) => sum + Number(item.amount), 0) : 0;
+    } catch (err) {
+      console.error(`Exception fetching withdrawals for partner ${partnerName}:`, err);
+      return 0;
+    }
   }
 };
 
@@ -481,11 +502,11 @@ export const partnerApi = {
   getAll: async (): Promise<Partner[]> => {
     // Get the fixed partners data
     const partners = [
-      { id: '1', name: 'Desmond', share: 50, balance: 0 },
-      { id: '2', name: 'Bethel', share: 50, balance: 0 },
+      { id: '1', name: 'Desmond', share: 50, balance: 0, withdrawals: 0 },
+      { id: '2', name: 'Bethel', share: 50, balance: 0, withdrawals: 0 },
     ];
 
-    // Calculate balances based on income and withdrawals
+    // Calculate balances based on income, expenses and withdrawals
     try {
       // Get all income data
       const { data: incomeData, error: incomeError } = await supabase
@@ -497,19 +518,36 @@ export const partnerApi = {
         return partners;
       }
 
+      // Get all expense data
+      const { data: expenseData, error: expenseError } = await supabase
+        .from('expenses')
+        .select('amount');
+
+      if (expenseError) {
+        console.error("Error fetching expense totals:", expenseError);
+        return partners;
+      }
+
       // Calculate the total income
       const totalIncome = incomeData.reduce((sum, item) => sum + (item.netincome || 0), 0);
       
-      // Get all withdrawals
-      const totalWithdrawals = await withdrawalApi.getTotalWithdrawals();
+      // Calculate the total expenses
+      const totalExpenses = expenseData.reduce((sum, item) => sum + (item.amount || 0), 0);
       
-      // Available balance after withdrawals
-      const availableBalance = Math.max(0, totalIncome - totalWithdrawals);
+      // Calculate Net Operating Profit
+      const netOperatingProfit = Math.max(0, totalIncome - totalExpenses);
       
-      // Calculate each partner's share
-      partners.forEach(partner => {
-        partner.balance = availableBalance * (partner.share / 100);
-      });
+      // Calculate each partner's individual withdrawals and share
+      for (let i = 0; i < partners.length; i++) {
+        // Get total withdrawals for this partner
+        partners[i].withdrawals = await withdrawalApi.getTotalWithdrawalsByPartner(partners[i].name);
+        
+        // Calculate the partner's share of the net operating profit
+        const partnerShare = netOperatingProfit * (partners[i].share / 100);
+        
+        // Calculate the partner's remaining balance (share minus withdrawals)
+        partners[i].balance = Math.max(0, partnerShare - partners[i].withdrawals);
+      }
 
       return partners;
     } catch (err) {
@@ -529,17 +567,70 @@ export const partnerApi = {
         console.error("Error fetching income totals:", incomeError);
         return 0;
       }
+      
+      // Get all expense data
+      const { data: expenseData, error: expenseError } = await supabase
+        .from('expenses')
+        .select('amount');
+
+      if (expenseError) {
+        console.error("Error fetching expense totals:", expenseError);
+        return 0;
+      }
 
       // Calculate the total income
       const totalIncome = incomeData.reduce((sum, item) => sum + (item.netincome || 0), 0);
       
+      // Calculate the total expenses
+      const totalExpenses = expenseData.reduce((sum, item) => sum + (item.amount || 0), 0);
+      
+      // Calculate Net Operating Profit
+      const netOperatingProfit = Math.max(0, totalIncome - totalExpenses);
+      
       // Get total withdrawals
       const totalWithdrawals = await withdrawalApi.getTotalWithdrawals();
       
-      // Return available balance (income minus withdrawals)
-      return Math.max(0, totalIncome - totalWithdrawals);
+      // Return available balance (net profit minus withdrawals)
+      return Math.max(0, netOperatingProfit - totalWithdrawals);
     } catch (err) {
       console.error("Exception calculating total available balance:", err);
+      return 0;
+    }
+  },
+  
+  // Add method to get Net Operating Profit
+  getNetOperatingProfit: async (): Promise<number> => {
+    try {
+      // Get all income data
+      const { data: incomeData, error: incomeError } = await supabase
+        .from('incomes')
+        .select('netincome');
+
+      if (incomeError) {
+        console.error("Error fetching income totals:", incomeError);
+        return 0;
+      }
+      
+      // Get all expense data
+      const { data: expenseData, error: expenseError } = await supabase
+        .from('expenses')
+        .select('amount');
+
+      if (expenseError) {
+        console.error("Error fetching expense totals:", expenseError);
+        return 0;
+      }
+
+      // Calculate the total income
+      const totalIncome = incomeData.reduce((sum, item) => sum + (item.netincome || 0), 0);
+      
+      // Calculate the total expenses
+      const totalExpenses = expenseData.reduce((sum, item) => sum + (item.amount || 0), 0);
+      
+      // Return Net Operating Profit
+      return Math.max(0, totalIncome - totalExpenses);
+    } catch (err) {
+      console.error("Exception calculating net operating profit:", err);
       return 0;
     }
   },

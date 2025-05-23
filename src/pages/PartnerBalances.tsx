@@ -9,7 +9,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { partnerApi, withdrawalApi } from "@/lib/db";
-import { Users, Award, InfoIcon } from "lucide-react";
+import { Users, Award, InfoIcon, BarChart3 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Tooltip,
@@ -28,6 +28,7 @@ export function PartnerBalances() {
   const [managerCommission, setManagerCommission] = useState<number>(0);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [totalWithdrawals, setTotalWithdrawals] = useState<number>(0);
+  const [netOperatingProfit, setNetOperatingProfit] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
@@ -35,6 +36,7 @@ export function PartnerBalances() {
     fetchManagerCommission();
     fetchPartners();
     fetchTotalWithdrawals();
+    fetchNetOperatingProfit();
   }, [currentMonth]);
 
   const fetchManagerCommission = async () => {
@@ -81,6 +83,20 @@ export function PartnerBalances() {
       });
     }
   };
+  
+  const fetchNetOperatingProfit = async () => {
+    try {
+      const profit = await partnerApi.getNetOperatingProfit();
+      setNetOperatingProfit(profit);
+    } catch (error) {
+      console.error("Error fetching net operating profit:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to load profit data",
+        description: "There was a problem calculating the net operating profit.",
+      });
+    }
+  };
 
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);
@@ -106,41 +122,87 @@ export function PartnerBalances() {
         initialMonth={currentMonth}
       />
       
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+        <SummaryCard
+          title="Net Operating Profit"
+          value={netOperatingProfit}
+          icon={<BarChart3 className="h-4 w-4" />}
+          loading={loading}
+          className="bg-gradient-to-br from-background to-green-50"
+        />
         <SummaryCard
           title="Total Withdrawals"
           value={totalWithdrawals}
           icon={<Users className="h-4 w-4" />}
           loading={loading}
         />
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger className="w-full">
+              <SummaryCard
+                title="Remaining Available Balance"
+                value={Math.max(0, netOperatingProfit - totalWithdrawals)}
+                icon={<Users className="h-4 w-4" />}
+                loading={loading}
+                className="bg-gradient-to-br from-background to-blue-50"
+              />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[300px]">
+              <p>This is the total Net Operating Profit minus all withdrawals.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       
       <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-6">
         {partners.map((partner) => (
-          <Card key={partner.id} className="bg-gradient-to-br from-background to-muted">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                {partner.name}
-              </CardTitle>
-              <CardDescription>Share: {partner.share}%</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin h-4 w-4 border-2 border-primary rounded-full border-t-transparent"></div>
-                  <span>Loading...</span>
-                </div>
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(partner.balance)}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">Current balance</p>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <TooltipProvider key={partner.id}>
+            <Tooltip>
+              <TooltipTrigger className="w-full text-left">
+                <Card className="bg-gradient-to-br from-background to-muted w-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-primary" />
+                      {partner.name}
+                    </CardTitle>
+                    <CardDescription>Share: {partner.share}%</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-primary rounded-full border-t-transparent"></div>
+                        <span>Loading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-2xl font-bold">
+                          {formatCurrency(partner.balance)}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2">Current balance</p>
+                        <div className="mt-4 space-y-1">
+                          <div className="text-sm flex justify-between">
+                            <span className="text-muted-foreground">Share of profit:</span>
+                            <span>{formatCurrency(netOperatingProfit * (partner.share / 100))}</span>
+                          </div>
+                          <div className="text-sm flex justify-between">
+                            <span className="text-muted-foreground">Total withdrawals:</span>
+                            <span>{formatCurrency(partner.withdrawals)}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[300px] p-4">
+                <h4 className="font-semibold mb-2">Balance Calculation</h4>
+                <p className="mb-2 text-sm">Balance is calculated as:</p>
+                <p className="text-sm mb-1">{partner.share}% of Net Operating Profit - Total Withdrawals</p>
+                <p className="text-sm mb-1">{formatCurrency(netOperatingProfit * (partner.share / 100))} - {formatCurrency(partner.withdrawals)}</p>
+                <p className="text-sm font-semibold">{formatCurrency(partner.balance)}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ))}
         
         {/* Manager's Commission Card */}
