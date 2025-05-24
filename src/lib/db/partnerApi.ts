@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Partner } from "./types";
 import { withdrawalAnalyticsApi } from "./api/withdrawalAnalyticsApi";
@@ -6,8 +5,8 @@ import { withdrawalAnalyticsApi } from "./api/withdrawalAnalyticsApi";
 // For simplicity, we'll define partners as a static list
 // In a real application, this could be stored in the database
 const PARTNERS: Omit<Partner, 'balance' | 'withdrawals'>[] = [
-  { id: "1", name: "Daniel", share: 50 },
-  { id: "2", name: "Benjamin", share: 50 }
+  { id: "1", name: "Desmond", share: 50 },
+  { id: "2", name: "Bethel", share: 50 }
 ];
 
 export const partnerApi = {

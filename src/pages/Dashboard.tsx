@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
+import { WelcomeMessage } from "@/components/ui/welcome-message";
 import { DashboardSummaryCards } from "@/components/dashboard/DashboardSummaryCards";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -33,6 +34,8 @@ export function Dashboard() {
         onMonthChange={setSelectedMonth}
         initialMonth={selectedMonth}
       />
+
+      <WelcomeMessage />
 
       <DashboardSummaryCards
         totalIncome={totalIncome}
